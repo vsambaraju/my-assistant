@@ -1,38 +1,45 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.chat-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  height: 100vh; /* Full viewport height */
 }
 
-.App-link {
-  color: #61dafb;
+.chat-content {
+  flex: 1; /* Take up remaining space */
+  overflow-y: auto; /* Allow scrolling for messages */
+  padding: 10px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.chat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message {
+  max-width: 60%;
+  padding: 10px;
+  border-radius: 10px;
+  word-wrap: break-word;
+}
+
+.question {
+  align-self: flex-end;
+  background-color: #e0f7fa;
+  text-align: right;
+}
+
+.answer {
+  align-self: flex-start;
+  background-color: #f1f8e9;
+  text-align: left;
+}
+
+.input-box {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  background-color: white; /* Optional: Add background to separate it visually */
+  padding: 10px;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1); /* Optional: Add shadow for better visibility */
 }
