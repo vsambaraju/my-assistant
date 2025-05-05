@@ -3,35 +3,34 @@ import ReactMarkdown from 'react-markdown';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import { Grid } from '@mui/material';
-
+import CircularProgress from '@mui/material/CircularProgress';
 
 const Chat = ({role}) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-
+    const [loading, setLoading] = useState(false);
 
     const handleInputChange = (event) => {
         setNewMessage(event.target.value);
-    }
+    };
 
     const handleSendMessage = () => {
         if (newMessage.trim() !== '') {
-            // Add the message to the chat
-            const question = "Question: "+newMessage;
+            const question = "Question: " + newMessage;
             setMessages([...messages, question]);
-            console.log(messages);
-            // Make the API call
-            console.log("role: "+role)
-            sendMessageToAPI(newMessage,role)
+            setLoading(true);
+            sendMessageToAPI(newMessage, role)
                 .then((response) => {
-                    // Clear the input field
-                    const responseMessage = response.response.response +" "+response.response.explanation;
+                    const responseMessage = response.response.response + " " + response.response.explanation;
                     setMessages([...messages, question, responseMessage]);
                     setNewMessage('');
                 })
                 .catch(error => {
                     console.error('Error sending message:', error);
                     setMessages([...messages, question, error.message]);
+                })
+                .finally(() => {
+                    setLoading(false);
                 });
         }
     };
@@ -69,23 +68,26 @@ const Chat = ({role}) => {
                     ))}
                 </Grid>
             </Grid>
-                <Grid item className="input-box">
-                    <TextField
-                        type="text"
-                        value={newMessage}
-                        onChange={handleInputChange}
-                        fullWidth
-                    />
-                    <br />
-                    <Button
-                        style={{ marginTop: '10px' }}
-                        variant="contained"
-                        color="primary"
-                        onClick={handleSendMessage}
-                    >
-                        Send
-                    </Button>
-                </Grid>
+            <Grid item className="input-box">
+                    <>
+                        <TextField
+                            type="text"
+                            value={newMessage}
+                            onChange={handleInputChange}
+                            fullWidth
+                        />
+                        <br />
+                        <Button
+                            style={{ marginTop: '10px' }}
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSendMessage}
+                            disabled={loading} // Disable button while loading
+                        >
+                            {loading ? <CircularProgress size={24} style={{ color: 'white' }} /> : 'Send'}
+                        </Button>
+                    </>
+            </Grid>
         </div>
     );
 }
