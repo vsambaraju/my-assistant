@@ -14,7 +14,7 @@ function App() {
   return (
     <div className="App">
       <ExpertSelector onSelection={handleExpertChange}/>
-      <Chat role={expert}/>
+      <Chat expert={expert}/>
     </div>
   );
 }

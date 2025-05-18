@@ -2,32 +2,35 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import { Grid } from '@mui/material';
+import { Grid, Alert } from '@mui/material';
 import CircularProgress from '@mui/material/CircularProgress';
 
-const Chat = ({role}) => {
+const Chat = ({expert}) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const handleInputChange = (event) => {
         setNewMessage(event.target.value);
     };
 
     const handleSendMessage = () => {
+        setErrorMessage(''); // Clear any previous error message
         if (newMessage.trim() !== '') {
-            const question = "Question: " + newMessage;
-            setMessages([...messages, question]);
+            const question = {content: newMessage,role:"user"};
+            const updatedMessages = [...messages, question];
+            setMessages([...updatedMessages]);
             setLoading(true);
-            sendMessageToAPI(newMessage, role)
+            sendMessageToAPI(updatedMessages, expert)
                 .then((response) => {
-                    const responseMessage = response.response.response + " " + response.response.explanation;
-                    setMessages([...messages, question, responseMessage]);
+                    //const responseMessage = response.response.response + " " + response.response.explanation;
+                    setMessages([...response.messages]);
                     setNewMessage('');
                 })
                 .catch(error => {
                     console.error('Error sending message:', error);
-                    setMessages([...messages, question, error.message]);
+                    setErrorMessage(error.message);
                 })
                 .finally(() => {
                     setLoading(false);
@@ -35,13 +38,13 @@ const Chat = ({role}) => {
         }
     };
 
-    const sendMessageToAPI = (message,role) => {
-        return fetch('https://1g1gmm4wd0.execute-api.us-east-1.amazonaws.com/dev/users/assistant', {
+    const sendMessageToAPI = (messages,expert) => {
+        return fetch('http://localhost:4000/users/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message, role }),
+            body: JSON.stringify({ messages, expert }),
         })
         .then(response => {
             if (!response.ok) {
@@ -56,14 +59,26 @@ const Chat = ({role}) => {
 
     return (
         <div className='chat-container'>
-            <Grid container direction="column" alignItems="center" className='chat-content'>
+            <Grid container direction="column" alignItems="center" sx={{justifyContent: "flex-start",alignItems: "flex-start",}} className='chat-content'>
+                {errorMessage && (
+                    <Grid item>
+                        <Alert severity="error" onClose={() => setErrorMessage('')}>{errorMessage}</Alert>
+                    </Grid>
+                )}
+                <Grid item >
+                    <Button  style={{ margin: '10px' }} variant="outlined" onClick={() => setMessages([])}>New Chat</Button>
+                </Grid>
+                {/* <Grid item className="chat-header">
+                    {expert && <h2>Chat with {expert}</h2>  } 
+                    <p>Ask your questions and get instant answers!</p>
+                </Grid> */}
                 <Grid item className="chat-box">
                     {messages.map((message, index) => (
                         <div
                             key={index}
-                            className={index % 2 === 0 ? 'message question' : 'message answer'}
+                            className={message.role === 'user' ? 'message question' : 'message answer'}
                         >
-                            <ReactMarkdown>{message}</ReactMarkdown>
+                            <ReactMarkdown>{message.content}</ReactMarkdown>
                         </div>
                     ))}
                 </Grid>
