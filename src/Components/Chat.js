@@ -39,7 +39,7 @@ const Chat = ({expert}) => {
     };
 
     const sendMessageToAPI = (messages,expert) => {
-        return fetch('http://localhost:4000/users/chat', {
+        return fetch('https://1g1gmm4wd0.execute-api.us-east-1.amazonaws.com/dev/users/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
