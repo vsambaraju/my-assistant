@@ -8,7 +8,6 @@ function App() {
 
   function handleExpertChange(expert){
     setExpert(expert);
-    console.log(expert);
   }
   
   return (
