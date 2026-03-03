@@ -6,9 +6,30 @@
 <body>
     <h1>Test Chat Streaming</h1>
     <button onclick="testStream()">Test Stream</button>
+    <button onclick="testCORS()">Test CORS</button>
     <div id="output" style="white-space: pre-wrap; background: #f0f0f0; padding: 10px; margin-top: 10px;"></div>
     
     <script>
+        async function testCORS() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing CORS...\n';
+            
+            try {
+                // Test OPTIONS
+                const optionsResponse = await fetch('https://epcirkgdtxor6ywbxryws25etq0egofz.lambda-url.us-east-1.on.aws/', {
+                    method: 'OPTIONS',
+                });
+                output.textContent += 'OPTIONS Status: ' + optionsResponse.status + '\n';
+                output.textContent += 'OPTIONS Headers:\n';
+                for (let [key, value] of optionsResponse.headers) {
+                    output.textContent += '  ' + key + ': ' + value + '\n';
+                }
+            } catch (error) {
+                output.textContent += 'CORS Test Error: ' + error.message + '\n';
+                console.error('CORS error:', error);
+            }
+        }
+        
         async function testStream() {
             const output = document.getElementById('output');
             output.textContent = 'Starting...\n';
@@ -26,6 +47,11 @@
                 });
                 
                 output.textContent += 'Response received, status: ' + response.status + '\n';
+                output.textContent += 'Response Headers:\n';
+                for (let [key, value] of response.headers) {
+                    output.textContent += '  ' + key + ': ' + value + '\n';
+                }
+                output.textContent += '\n';
                 
                 if (!response.ok) {
                     throw new Error('Failed: ' + response.status);
@@ -44,7 +70,6 @@
                     }
                     
                     const chunk = decoder.decode(value, { stream: true });
-                    output.textContent += 'Chunk: ' + chunk + '\n';
                     
                     const lines = chunk.split('\n').filter(line => line.trim() !== '');
                     
@@ -55,10 +80,9 @@
                                 const parsed = JSON.parse(data);
                                 if (parsed.content) {
                                     buffer += parsed.content;
-                                    output.textContent += 'Content: ' + parsed.content + '\n';
                                 }
                             } catch (e) {
-                                output.textContent += 'Parse error: ' + e.message + '\n';
+                                // ignore parse errors
                             }
                         }
                     }
