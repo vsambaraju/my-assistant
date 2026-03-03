@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Streaming</title>
+</head>
+<body>
+    <h1>Test Chat Streaming</h1>
+    <button onclick="testStream()">Test Stream</button>
+    <div id="output" style="white-space: pre-wrap; background: #f0f0f0; padding: 10px; margin-top: 10px;"></div>
+    
+    <script>
+        async function testStream() {
+            const output = document.getElementById('output');
+            output.textContent = 'Starting...\n';
+            
+            try {
+                const response = await fetch('https://epcirkgdtxor6ywbxryws25etq0egofz.lambda-url.us-east-1.on.aws/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        messages: [{role: 'user', content: 'Say hello'}], 
+                        expert: 'GeneralExpert' 
+                    }),
+                });
+                
+                output.textContent += 'Response received, status: ' + response.status + '\n';
+                
+                if (!response.ok) {
+                    throw new Error('Failed: ' + response.status);
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) {
+                        output.textContent += '\n\nDone!\n';
+                        break;
+                    }
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    output.textContent += 'Chunk: ' + chunk + '\n';
+                    
+                    const lines = chunk.split('\n').filter(line => line.trim() !== '');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            try {
+                                const parsed = JSON.parse(data);
+                                if (parsed.content) {
+                                    buffer += parsed.content;
+                                    output.textContent += 'Content: ' + parsed.content + '\n';
+                                }
+                            } catch (e) {
+                                output.textContent += 'Parse error: ' + e.message + '\n';
+                            }
+                        }
+                    }
+                }
+                
+                output.textContent += '\nFinal message: ' + buffer + '\n';
+                
+            } catch (error) {
+                output.textContent += 'Error: ' + error.message + '\n';
+                console.error('Test error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
