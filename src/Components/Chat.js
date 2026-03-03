@@ -12,6 +12,7 @@ const Chat = ({expert}) => {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [streamingMessage, setStreamingMessage] = useState('');
 
     const handleInputChange = (event) => {
         setNewMessage(event.target.value);
@@ -24,14 +25,17 @@ const Chat = ({expert}) => {
             const updatedMessages = [...messages, question];
             setMessages([...updatedMessages]);
             setLoading(true);
-            sendMessageToAPI(updatedMessages, expert)
-                .then((response) => {
-                    setMessages([...response.messages]);
+            setStreamingMessage('');
+            
+            sendMessageToAPIStreaming(updatedMessages, expert)
+                .then(() => {
                     setNewMessage('');
                 })
                 .catch(error => {
                     console.error('Error sending message:', error);
-                    setErrorMessage(error.message);
+                    setErrorMessage(error.message || 'Failed to send message');
+                    // Remove the user message if streaming failed
+                    setMessages(messages);
                 })
                 .finally(() => {
                     setLoading(false);
@@ -46,8 +50,71 @@ const Chat = ({expert}) => {
         }
     };
 
+    const sendMessageToAPIStreaming = async (messages, expert) => {
+        try {
+            const response = await fetch('https://epcirkgdtxor6ywbxryws25etq0egofz.lambda-url.us-east-1.on.aws/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ messages, expert }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send message');
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulatedContent = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                
+                if (done) {
+                    // Add final complete message to messages array
+                    setMessages(prev => [...prev, { role: 'assistant', content: accumulatedContent }]);
+                    setStreamingMessage('');
+                    break;
+                }
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        
+                        try {
+                            const parsed = JSON.parse(data);
+                            
+                            if (parsed.error) {
+                                throw new Error(parsed.error);
+                            }
+                            
+                            if (parsed.content && !parsed.done) {
+                                accumulatedContent += parsed.content;
+                                setStreamingMessage(accumulatedContent);
+                            } else if (parsed.done) {
+                                // Final message received
+                                setMessages(prev => [...prev, { role: 'assistant', content: accumulatedContent }]);
+                                setStreamingMessage('');
+                            }
+                        } catch (e) {
+                            if (e.message !== 'Unexpected end of JSON input') {
+                                console.error('Error parsing SSE:', e);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            throw error;
+        }
+    };
+
     const sendMessageToAPI = (messages,expert) => {
-        return fetch('https://1g1gmm4wd0.execute-api.us-east-1.amazonaws.com/dev/users/chat', {
+        return fetch('https://nc9cqynltg.execute-api.us-east-1.amazonaws.com/users/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -134,7 +201,15 @@ const Chat = ({expert}) => {
                             </div>
                         </Fade>
                     ))}
-                    {loading && (
+                    {streamingMessage && (
+                        <Fade in={true} timeout={300}>
+                            <div className="message answer streaming">
+                                <ReactMarkdown>{streamingMessage}</ReactMarkdown>
+                                <span className="cursor">▊</span>
+                            </div>
+                        </Fade>
+                    )}
+                    {loading && !streamingMessage && (
                         <Fade in={loading}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 2 }}>
                                 <CircularProgress size={24} sx={{ color: '#3b82f6' }} />
